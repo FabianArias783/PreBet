@@ -151,6 +151,7 @@ async function fetchMatchesToday(rapidApiKey) {
 }
 
 module.exports = async (req, res) => {
+  console.log('API /api/matches requested');
   try {
     const rapidApiKey = process.env.API_SPORTS;
     const isDemo = !rapidApiKey || rapidApiKey === 'tu_key_aqui' || rapidApiKey === '';

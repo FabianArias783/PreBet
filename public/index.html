@@ -448,6 +448,7 @@
   </div>
 
 
+
   <script>
     let allMatches = [];
     let currentFilter = "all";
@@ -617,11 +618,30 @@
 
     async function fetchMatches() {
       try {
-        const response = await fetch('/api/matches');
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
+        console.log("Iniciando fetch de datos...");
+        let response;
+        try {
+          response = await fetch('/api/matches');
+          console.log("Fetch local completado con status:", response.status);
+        } catch (localError) {
+          console.log("Error en fetch a /api/matches (tal vez sin backend):", localError.message);
+          console.log("Fallback a datos de demostración embebidos (Standalone Mode)");
+          // Para modo completamente sin servidor (standalone mode abriendo el html directamente)
+          handleStandaloneMode();
+          return;
         }
-        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error('La respuesta de red no fue exitosa. Status: ' + response.status);
+        }
+
+        let data;
+        try {
+            data = await response.json();
+            console.log("Datos parseados de JSON:", data.matches.length, "partidos");
+        } catch (jsonError) {
+            throw new Error('Error al parsear el JSON: ' + jsonError.message);
+        }
 
         allMatches = data.matches;
 
@@ -638,14 +658,66 @@
         setupFilters();
         renderMatches();
       } catch (error) {
-        console.error('Error fetching matches:', error);
-        document.getElementById("matches-container").innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--red);">Error al cargar los datos. Por favor, intenta de nuevo más tarde.</div>`;
+        console.error('Error general en fetchMatches:', error);
+        document.getElementById("matches-container").innerHTML = `<div style="text-align:center; padding: 2rem; color: var(--red);">${error.message || 'Error al cargar los datos. Por favor, intenta de nuevo más tarde.'}</div>`;
       }
+    }
+
+    // Datos hardcoded para modo standalone si se abre el html directamente sin servidor local o vercel
+    function handleStandaloneMode() {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Simular respuesta del backend
+        const demoData = {
+          date: today,
+          generated: new Date().toISOString(),
+          matchCount: 3,
+          isDemo: true,
+          matches: [
+            {
+              id: "st_1", league: "La Liga", leagueFlag: "🇪🇸", homeTeam: "Real Madrid", awayTeam: "Atlético Madrid", kickoff: `${today}T20:00:00Z`,
+              homeStats: { formString: "WWWDW" }, awayStats: { formString: "WDWWL" },
+              probs: { home: 67.7, draw: 21.5, away: 10.9, homeXG: 1.82, awayXG: 0.56, over25: 42.5, btts: 36.1 },
+              bookOdds: { home: 2.1, draw: 3.4, away: 3.2 },
+              value: {
+                  home: { realOdds: 1.48, edge: 20.1, hasValue: true },
+                  draw: { realOdds: 4.65, edge: -7.9, hasValue: false },
+                  away: { realOdds: 9.17, edge: -20.4, hasValue: false }
+              },
+              aiSummary: "Real Madrid es favorito con 67.7% de probabilidad según el modelo Poisson ajustado por forma y xG. Se detecta valor en Real Madrid."
+            },
+            {
+              id: "st_2", league: "Premier League", leagueFlag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", homeTeam: "Arsenal", awayTeam: "Chelsea", kickoff: `${today}T16:00:00Z`,
+              homeStats: { formString: "WWWWL" }, awayStats: { formString: "DWWLD" },
+              probs: { home: 70.0, draw: 20.0, away: 10.0, homeXG: 1.9, awayXG: 0.5, over25: 40.0, btts: 35.0 },
+              bookOdds: { home: 2.1, draw: 3.4, away: 3.2 },
+              value: {
+                  home: { realOdds: 1.4, edge: 22.0, hasValue: true },
+                  draw: { realOdds: 5.0, edge: -10.0, hasValue: false },
+                  away: { realOdds: 10.0, edge: -21.0, hasValue: false }
+              },
+              aiSummary: "Arsenal es favorito."
+            }
+          ]
+        };
+
+        allMatches = demoData.matches;
+        document.getElementById('demo-banner').style.display = 'block';
+        document.getElementById('demo-banner').innerHTML = '<strong>⚠️ MODO STANDALONE:</strong> Archivo abierto directamente sin servidor. Mostrando muestra local reducida.';
+
+        const valueMatches = allMatches.filter(m => m.value.home.hasValue || m.value.draw.hasValue || m.value.away.hasValue);
+        document.getElementById('count-total').innerText = allMatches.length;
+        document.getElementById('count-value').innerText = valueMatches.length;
+        document.getElementById('today-date').innerText = `Actualizado: ${formatDate(demoData.generated)}`;
+
+        setupFilters();
+        renderMatches();
     }
 
     // Inicializar al cargar
     document.addEventListener("DOMContentLoaded", fetchMatches);
   </script>
+
 
 </body>
 </html>
