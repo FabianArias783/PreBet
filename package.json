@@ -1,0 +1,16 @@
+{
+  "name": "oddsiq",
+  "version": "1.0.0",
+  "description": "OddsIQ - Plataforma de Probabilidades Deportivas con IA",
+  "main": "api/matches.js",
+  "scripts": {
+    "start": "npx vercel dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "axios": "^1.13.6"
+  },
+  "devDependencies": {
+    "vercel": "^37.8.0"
+  }
+}
